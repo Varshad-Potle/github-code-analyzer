@@ -1,13 +1,13 @@
 // src/routes/viz.routes.js
-const { Router } = require('express');
-const { getFolderTree, getTechStack } = require('../controllers/viz.controller.js'); // [cite: 61]
+import { Router } from 'express';
+import { getFolderTree, getTechStack } from '../controllers/viz.controller.js';
 
 const router = Router();
 
-// GET /api/viz/tree [cite: 54]
+// GET /api/viz/tree
 router.get('/tree', getFolderTree);
 
-// GET /api/viz/techstack [cite: 54-55]
+// GET /api/viz/techstack
 router.get('/techstack', getTechStack);
 
-module.exports = router;
+export default router;

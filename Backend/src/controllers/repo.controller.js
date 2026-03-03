@@ -1,13 +1,86 @@
-// src/controllers/repo.controller.js [cite: 57]
-const ApiResponse = require('../utils/ApiResponse');
-const ApiError = require('../utils/ApiError');
+// src/controllers/repo.controller.js
+import ApiResponse from '../utils/apiReponse.js';
+import ApiError from '../utils/apiError.js';
 
+// Pipeline services
+import { cloneRepo } from '../services/git/gitClone.service.js';
+import { getValidFiles } from '../services/parser/fileFilter.service.js';
+import { readAllowedFiles } from '../services/parser/fileReader.service.js';
+import { detectStack } from '../services/parser/techDetector.service.js';
+import { chunkFiles } from '../services/parser/chunker.service.js';
+import { generateEmbeddings } from '../services/embedding/embedding.service.js';
+import { storeEmbeddings } from '../services/vectorStore/chromaStore.service.js';
+
+/**
+ * POST /api/repo/ingest
+ * Full ingestion pipeline:
+ *   1. Clone the repo to /tmp
+ *   2. Filter & read source files
+ *   3. Detect tech stack
+ *   4. Chunk the code
+ *   5. Generate OpenAI embeddings
+ *   6. Store in ChromaDB
+ */
 const ingestRepo = async (req, res, next) => {
     try {
-        res.status(200).json(new ApiResponse(200, {}, "Ingest Route Hit"));
+        const { repoUrl } = req.body;
+
+        if (!repoUrl) {
+            return next(new ApiError(400, "repoUrl is required in the request body."));
+        }
+
+        console.log(`\n🚀 Starting ingestion for: ${repoUrl}`);
+
+        // Step 1: Clone the repository
+        console.log('📥 Step 1: Cloning repository...');
+        const { repoId, clonePath } = await cloneRepo(repoUrl);
+
+        // Step 2: Filter files (skip node_modules, .git, etc.)
+        console.log('🔍 Step 2: Filtering files...');
+        const allFiles = getValidFiles(clonePath);
+        console.log(`   Found ${allFiles.length} files after filtering.`);
+
+        // Step 3: Read allowed source files
+        console.log('📖 Step 3: Reading source files...');
+        const filesData = readAllowedFiles(allFiles, clonePath);
+        console.log(`   Read ${filesData.length} source files.`);
+
+        if (filesData.length === 0) {
+            return next(new ApiError(400, "No supported source files found in the repository."));
+        }
+
+        // Step 4: Detect tech stack
+        console.log('🔧 Step 4: Detecting tech stack...');
+        const techStack = detectStack(filesData);
+        console.log(`   Detected: ${techStack.join(', ') || 'None identified'}`);
+
+        // Step 5: Chunk the code
+        console.log('✂️  Step 5: Chunking code...');
+        const chunks = chunkFiles(filesData);
+        console.log(`   Created ${chunks.length} chunks.`);
+
+        // Step 6: Generate embeddings
+        console.log('🧠 Step 6: Generating embeddings...');
+        const embeddedChunks = await generateEmbeddings(chunks);
+        console.log(`   Generated ${embeddedChunks.length} embeddings.`);
+
+        // Step 7: Store in ChromaDB
+        console.log('💾 Step 7: Storing in ChromaDB...');
+        await storeEmbeddings(repoId, embeddedChunks);
+
+        console.log(`✅ Ingestion complete for repoId: ${repoId}\n`);
+
+        res.status(200).json(new ApiResponse(200, {
+            repoId,
+            filesProcessed: filesData.length,
+            chunksCreated: chunks.length,
+            techStack,
+        }, "Repository ingested successfully."));
+
     } catch (error) {
-        next(new ApiError(500, "Error in ingestRepo"));
+        console.error('❌ Ingestion failed:', error.message);
+        next(new ApiError(500, error.message || "Error during repository ingestion."));
     }
 };
 
-module.exports = { ingestRepo };
+export { ingestRepo };

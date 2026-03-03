@@ -1,10 +1,10 @@
 // src/routes/repo.routes.js
-const { Router } = require('express');
-const { ingestRepo } = require('../controllers/repo.controller.js'); // [cite: 57]
+import { Router } from 'express';
+import { ingestRepo } from '../controllers/repo.controller.js';
 
 const router = Router();
 
-// POST /api/repo/ingest [cite: 49]
+// POST /api/repo/ingest
 router.post('/ingest', ingestRepo);
 
-module.exports = router;
+export default router;

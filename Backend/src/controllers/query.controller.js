@@ -1,6 +1,6 @@
-// src/controllers/query.controller.js [cite: 59]
-const ApiResponse = require('../utils/ApiResponse');
-const ApiError = require('../utils/ApiError');
+// src/controllers/query.controller.js
+import ApiResponse from '../utils/apiReponse.js';
+import ApiError from '../utils/apiError.js';
 
 const queryCodebase = async (req, res, next) => {
     try {
@@ -18,4 +18,4 @@ const queryFile = async (req, res, next) => {
     }
 };
 
-module.exports = { queryCodebase, queryFile };
+export { queryCodebase, queryFile };

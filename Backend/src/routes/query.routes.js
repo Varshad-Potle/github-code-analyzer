@@ -1,13 +1,13 @@
 // src/routes/query.routes.js
-const { Router } = require('express');
-const { queryCodebase, queryFile } = require('../controllers/query.controller.js'); // [cite: 59]
+import { Router } from 'express';
+import { queryCodebase, queryFile } from '../controllers/query.controller.js';
 
 const router = Router();
 
-// POST /api/query [cite: 51]
+// POST /api/query
 router.post('/', queryCodebase);
 
-// POST /api/query/file [cite: 51-52]
+// POST /api/query/file
 router.post('/file', queryFile);
 
-module.exports = router;
+export default router;

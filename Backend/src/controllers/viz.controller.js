@@ -1,6 +1,6 @@
-// src/controllers/viz.controller.js [cite: 61-63]
-const ApiResponse = require('../utils/ApiResponse');
-const ApiError = require('../utils/ApiError');
+// src/controllers/viz.controller.js
+import ApiResponse from '../utils/apiReponse.js';
+import ApiError from '../utils/apiError.js';
 
 const getFolderTree = async (req, res, next) => {
     try {
@@ -18,4 +18,4 @@ const getTechStack = async (req, res, next) => {
     }
 };
 
-module.exports = { getFolderTree, getTechStack };
+export { getFolderTree, getTechStack };
