@@ -10,6 +10,8 @@ import { detectStack } from '../services/parser/techDetector.service.js';
 import { chunkFiles } from '../services/parser/chunker.service.js';
 import { generateEmbeddings } from '../services/embedding/embedding.service.js';
 import { storeEmbeddings } from '../services/vectorStore/chromaStore.service.js';
+import { buildTree } from '../services/viz/treeBuilder.service.js';
+import { saveRepoMeta } from '../utils/repoStore.js';
 
 /**
  * POST /api/repo/ingest
@@ -54,19 +56,32 @@ const ingestRepo = async (req, res, next) => {
         const techStack = detectStack(filesData);
         console.log(`   Detected: ${techStack.join(', ') || 'None identified'}`);
 
-        // Step 5: Chunk the code
-        console.log('✂️  Step 5: Chunking code...');
+        // Step 5: Build folder tree (before clone gets cleaned up)
+        console.log('🌳 Step 5: Building folder tree...');
+        const tree = buildTree(clonePath, repoUrl.split('/').pop().replace('.git', ''));
+
+        // Step 6: Chunk the code
+        console.log('✂️  Step 6: Chunking code...');
         const chunks = chunkFiles(filesData);
         console.log(`   Created ${chunks.length} chunks.`);
 
-        // Step 6: Generate embeddings
-        console.log('🧠 Step 6: Generating embeddings...');
+        // Step 7: Generate embeddings
+        console.log('🧠 Step 7: Generating embeddings...');
         const embeddedChunks = await generateEmbeddings(chunks);
         console.log(`   Generated ${embeddedChunks.length} embeddings.`);
 
-        // Step 7: Store in ChromaDB
-        console.log('💾 Step 7: Storing in ChromaDB...');
+        // Step 8: Store in ChromaDB
+        console.log('💾 Step 8: Storing in ChromaDB...');
         await storeEmbeddings(repoId, embeddedChunks);
+
+        // Step 9: Save metadata for viz endpoints
+        console.log('📋 Step 9: Saving repo metadata...');
+        saveRepoMeta(repoId, {
+            repoUrl,
+            tree,
+            techStack,
+            fileList: filesData.map(f => ({ filePath: f.filePath, extension: f.extension })),
+        });
 
         console.log(`✅ Ingestion complete for repoId: ${repoId}\n`);
 
@@ -75,6 +90,7 @@ const ingestRepo = async (req, res, next) => {
             filesProcessed: filesData.length,
             chunksCreated: chunks.length,
             techStack,
+            tree,
         }, "Repository ingested successfully."));
 
     } catch (error) {
