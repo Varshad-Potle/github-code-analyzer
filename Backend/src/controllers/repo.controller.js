@@ -12,6 +12,7 @@ import { generateEmbeddings } from '../services/embedding/embedding.service.js';
 import { storeEmbeddings } from '../services/vectorStore/chromaStore.service.js';
 import { buildTree } from '../services/viz/treeBuilder.service.js';
 import { saveRepoMeta } from '../utils/repoStore.js';
+import { cleanUpRepo } from '../utils/cleanUp.js';
 
 /**
  * POST /api/repo/ingest
@@ -83,6 +84,9 @@ const ingestRepo = async (req, res, next) => {
             fileList: filesData.map(f => ({ filePath: f.filePath, extension: f.extension })),
         });
 
+        // Step 10: Clean up cloned repo from /tmp
+        cleanUpRepo(clonePath);
+
         console.log(`✅ Ingestion complete for repoId: ${repoId}\n`);
 
         res.status(200).json(new ApiResponse(200, {
@@ -94,6 +98,8 @@ const ingestRepo = async (req, res, next) => {
         }, "Repository ingested successfully."));
 
     } catch (error) {
+        // Clean up on failure too
+        if (typeof clonePath !== 'undefined') cleanUpRepo(clonePath);
         console.error('❌ Ingestion failed:', error.message);
         next(new ApiError(500, error.message || "Error during repository ingestion."));
     }
