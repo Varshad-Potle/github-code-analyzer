@@ -13,6 +13,6 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: "OK", message: "Github Code Visualizer API is running" });
 });
 
-// We will mount the actual routes (repo, query, viz) here in the next steps 
+app.use('/api', routes);
 
 export default app;
